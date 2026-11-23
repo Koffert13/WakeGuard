@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Alarm bell ears -->
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M31,34L39,26L43,30L35,38Z" />
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M77,34L69,26L65,30L73,38Z" />
+    <!-- Outer alarm ring -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,32A24,24 0,1 1,30 56A24,24 0,0 1,54 32Z"
+        android:strokeWidth="5"
+        android:strokeColor="#34D399" />
+    <!-- Snake S-curve inside clock face -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M44,64 L54,64 Q62,64 62,56 Q62,48 54,48 L48,48 Q42,48 42,43"
+        android:strokeWidth="5"
+        android:strokeColor="#6EE7B7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Apple dot -->
+    <path
+        android:fillColor="#FB7185"
+        android:pathData="M62,42m-3.5,0a3.5,3.5 0,1 1,7 0a3.5,3.5 0,1 1,-7 0" />
+</vector>

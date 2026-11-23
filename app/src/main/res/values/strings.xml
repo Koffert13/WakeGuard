@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WakeGuard</string>
+    <string name="accessibility_service_label">WakeGuard Anti-Exit Guard</string>
+    <string name="accessibility_service_description">Prevents leaving WakeGuard or opening the power menu while an alarm is actively ringing. Completely inactive when no alarm is ringing.</string>
+</resources>
