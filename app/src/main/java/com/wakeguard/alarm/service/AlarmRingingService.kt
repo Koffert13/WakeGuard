@@ -5,9 +5,14 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.provider.Settings
+import android.view.Gravity
+import android.view.View
+import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import com.wakeguard.alarm.R
 import com.wakeguard.alarm.WakeGuardApp
@@ -30,6 +35,7 @@ class AlarmRingingService : Service() {
     private var watchdogJob: Job? = null
     private var stateObserverJob: Job? = null
     private var lastRelaunchAtMs: Long = 0L
+    private var overlayAnchorView: View? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -44,6 +50,12 @@ class AlarmRingingService : Service() {
                 val alarmId = intent.getStringExtra(EXTRA_ALARM_ID)
                 val isQuickTest = intent.getBooleanExtra(EXTRA_IS_QUICK_TEST, false)
                 handleStartAlarm(alarmId, isQuickTest)
+            }
+
+            ACTION_RELAUNCH_ALARM -> {
+                if (AlarmRingingState.isRingingActive) {
+                    launchAlarmActivity(force = true)
+                }
             }
 
             ACTION_MISSION_COMPLETED -> {
@@ -65,6 +77,7 @@ class AlarmRingingService : Service() {
         }
 
         acquireWakeLock()
+        attachOverlayAnchor()
         AlarmRingingState.stateMachine.startSession(alarm, isQuickTest)
 
         val notification = buildAlarmNotification(alarm)
@@ -82,6 +95,44 @@ class AlarmRingingService : Service() {
         launchAlarmActivity(force = true)
         observeSessionState()
         startWatchdogLoop()
+    }
+
+    /**
+     * Attaches a 1x1 transparent non-touchable overlay window while the alarm is ringing.
+     * On Pixel 9 (Android 15), having an active visible overlay window guarantees instant
+     * Background Activity Launch (BAL) relaunch whenever the user tries to swipe Home/Recents.
+     */
+    private fun attachOverlayAnchor() {
+        if (overlayAnchorView != null) return
+        if (!Settings.canDrawOverlays(this)) return
+        runCatching {
+            val wm = getSystemService(WindowManager::class.java) ?: return
+            val view = View(this)
+            val params = WindowManager.LayoutParams(
+                1,
+                1,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = 0
+                y = 0
+            }
+            wm.addView(view, params)
+            overlayAnchorView = view
+        }
+    }
+
+    private fun detachOverlayAnchor() {
+        val view = overlayAnchorView ?: return
+        overlayAnchorView = null
+        runCatching {
+            val wm = getSystemService(WindowManager::class.java)
+            wm?.removeViewImmediate(view)
+        }
     }
 
     private fun observeSessionState() {
@@ -104,9 +155,9 @@ class AlarmRingingService : Service() {
         watchdogJob?.cancel()
         watchdogJob = serviceScope.launch {
             // Brief grace period right after launch so Activity has time to come to foreground
-            val graceUntilMs = System.currentTimeMillis() + 1_500L
+            val graceUntilMs = System.currentTimeMillis() + 1_200L
             while (isActive) {
-                delay(250L)
+                delay(150L)
                 val session = AlarmRingingState.session.value ?: break
                 if (!session.isActive) break
 
@@ -122,7 +173,7 @@ class AlarmRingingService : Service() {
                     if (session.phase == RingingPhase.PLAYING_MUTED) {
                         AlarmRingingState.stateMachine.reportEscapeAttempt()
                     }
-                    if (now - lastRelaunchAtMs >= 450L) {
+                    if (now - lastRelaunchAtMs >= 250L) {
                         lastRelaunchAtMs = now
                         launchAlarmActivity(force = true)
                     }
@@ -181,6 +232,7 @@ class AlarmRingingService : Service() {
         watchdogJob?.cancel()
         stateObserverJob?.cancel()
         audioController.stop()
+        detachOverlayAnchor()
         app.repository.setActiveRingingAlarm(null)
 
         // Reschedule repeating alarm for next occurrence, or turn off one-shot alarm
@@ -203,7 +255,6 @@ class AlarmRingingService : Service() {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
-        // If user somehow swiped the app away while alarm is still active, resurrect immediately!
         val session = AlarmRingingState.session.value
         if (session != null && session.isActive) {
             AlarmRingingState.stateMachine.reportEscapeAttempt()
@@ -219,7 +270,7 @@ class AlarmRingingService : Service() {
             "WakeGuard:AlarmRingingWakeLock"
         ).apply {
             setReferenceCounted(false)
-            acquire(30 * 60 * 1000L) // max 30 min safety cap
+            acquire(30 * 60 * 1000L)
         }
     }
 
@@ -236,6 +287,7 @@ class AlarmRingingService : Service() {
         watchdogJob?.cancel()
         stateObserverJob?.cancel()
         audioController.stop()
+        detachOverlayAnchor()
         releaseWakeLock()
         serviceScope.cancel()
         super.onDestroy()
@@ -243,6 +295,7 @@ class AlarmRingingService : Service() {
 
     companion object {
         const val ACTION_START_ALARM = "com.wakeguard.alarm.service.START_ALARM"
+        const val ACTION_RELAUNCH_ALARM = "com.wakeguard.alarm.service.RELAUNCH_ALARM"
         const val ACTION_MISSION_COMPLETED = "com.wakeguard.alarm.service.MISSION_COMPLETED"
         const val EXTRA_ALARM_ID = "extra_alarm_id"
         const val EXTRA_IS_QUICK_TEST = "extra_is_quick_test"

@@ -14,6 +14,7 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
 import androidx.core.content.ContextCompat
+import com.wakeguard.alarm.BuildConfig
 import com.wakeguard.alarm.service.AlarmGuardAccessibilityService
 
 data class GuardPermissionsStatus(
@@ -22,7 +23,8 @@ data class GuardPermissionsStatus(
     val fullScreenIntentGranted: Boolean,
     val overlayGranted: Boolean,
     val batteryUnrestricted: Boolean,
-    val accessibilityGuardEnabled: Boolean
+    val accessibilityGuardEnabled: Boolean,
+    val hasAccessibilityGuard: Boolean = BuildConfig.HAS_ACCESSIBILITY_GUARD
 ) {
     val allGranted: Boolean
         get() = notificationsGranted &&
@@ -30,19 +32,21 @@ data class GuardPermissionsStatus(
             fullScreenIntentGranted &&
             overlayGranted &&
             batteryUnrestricted &&
-            accessibilityGuardEnabled
+            (!hasAccessibilityGuard || accessibilityGuardEnabled)
 
     val grantedCount: Int
-        get() = listOf(
-            notificationsGranted,
-            exactAlarmGranted,
-            fullScreenIntentGranted,
-            overlayGranted,
-            batteryUnrestricted,
-            accessibilityGuardEnabled
-        ).count { it }
+        get() {
+            val base = listOf(
+                notificationsGranted,
+                exactAlarmGranted,
+                fullScreenIntentGranted,
+                overlayGranted,
+                batteryUnrestricted
+            ).count { it }
+            return if (hasAccessibilityGuard && accessibilityGuardEnabled) base + 1 else base
+        }
 
-    val totalCount: Int get() = 6
+    val totalCount: Int get() = if (hasAccessibilityGuard) 6 else 5
 }
 
 object PermissionGuardHelper {

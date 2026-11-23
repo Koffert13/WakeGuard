@@ -146,32 +146,34 @@ fun ProtectionChecklistCard(
                     granted = status.batteryUnrestricted,
                     onGrant = onOpenBattery
                 )
-                PermissionRow(
-                    title = "Strict Accessibility Guard",
-                    subtitle = "Blocks Home, Recents, & Power Menu while ringing",
-                    granted = status.accessibilityGuardEnabled,
-                    onGrant = onOpenAccessibility
-                )
+                if (status.hasAccessibilityGuard) {
+                    PermissionRow(
+                        title = "Strict Accessibility Guard",
+                        subtitle = "Blocks Home, Recents, & Power Menu while ringing",
+                        granted = status.accessibilityGuardEnabled,
+                        onGrant = onOpenAccessibility
+                    )
 
-                if (!status.accessibilityGuardEnabled) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(WakeSurfaceHigh)
-                            .padding(12.dp)
-                    ) {
-                        Text(
-                            text = "Pixel 9 sideload tip: If Accessibility says \"Restricted setting\", tap App Info → top-right ⋮ menu → \"Allow restricted settings\", then enable WakeGuard Anti-Exit Guard.",
-                            fontSize = 12.sp,
-                            color = WakeTextSecondary,
-                            lineHeight = 17.sp
-                        )
-                        TextButton(
-                            onClick = onOpenAppInfo,
-                            modifier = Modifier.align(Alignment.End)
+                    if (!status.accessibilityGuardEnabled) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(WakeSurfaceHigh)
+                                .padding(12.dp)
                         ) {
-                            Text("Open App Info", color = WakeEmerald, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                text = "Pixel 9 sideload tip: If Accessibility says \"Restricted setting\", tap App Info → top-right ⋮ menu → \"Allow restricted settings\", then enable WakeGuard Anti-Exit Guard.",
+                                fontSize = 12.sp,
+                                color = WakeTextSecondary,
+                                lineHeight = 17.sp
+                            )
+                            TextButton(
+                                onClick = onOpenAppInfo,
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Text("Open App Info", color = WakeEmerald, fontWeight = FontWeight.SemiBold)
+                            }
                         }
                     }
                 }

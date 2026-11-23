@@ -189,6 +189,17 @@ class AlarmActivity : ComponentActivity() {
         hideSystemBars()
     }
 
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (AlarmRingingState.isRingingActive) {
+            AlarmRingingState.stateMachine.reportEscapeAttempt()
+            val relaunch = Intent(this, AlarmRingingService::class.java).apply {
+                action = AlarmRingingService.ACTION_RELAUNCH_ALARM
+            }
+            runCatching { startService(relaunch) }
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         AlarmRingingState.isActivityForeground = false

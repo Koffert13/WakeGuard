@@ -19,16 +19,18 @@ Ad-free, open, strict wake-up alarm app built natively for **Google Pixel 9 (And
 
 ## Installing on Your Pixel 9
 
-### Option A: Direct Download on Your Pixel 9 (Easiest)
-1. Download [`apk/WakeGuard-v1.0.0.apk`](apk/WakeGuard-v1.0.0.apk) (or grab it from the **Releases** tab on GitHub) directly on your Pixel 9.
-2. Open the downloaded `.apk` in the **Files** app and allow installation when prompted.
+Google Play Protect on Pixel 9 (Android 15) automatically blocks browser/Files sideloading of any APK that declares an Accessibility Service. Because of this, WakeGuard ships in two builds:
 
-### Option B: USB (`adb`)
-1. Enable **Developer options** and **USB debugging** on your Pixel 9.
-2. Connect via USB and run:
-   ```bash
-   adb install -r apk/WakeGuard-v1.0.0.apk
-   ```
+### Option A: Direct Download on Your Pixel 9 — Recommended (`standard` flavor)
+1. Download [`apk/WakeGuard-v1.0.1-sideload.apk`](apk/WakeGuard-v1.0.1-sideload.apk) directly on your Pixel 9.
+2. Open it in the **Files** app and install normally (no Accessibility Service declared, so Play Protect allows it cleanly).
+3. Uses **Display Over Other Apps (`SYSTEM_ALERT_WINDOW`) + 150ms Foreground Watchdog + `onUserLeaveHint` instant snap-back + Back/Volume lock + Lock-screen wake + Reboot survival** to keep you in the game until you win!
+
+### Option B: USB `adb install` with Accessibility Guard (`strict` flavor)
+If you also want the extra Accessibility Service (which dismisses the Power Menu & Notification Shade while ringing), install over USB (ADB installs bypass the internet-sideload filter):
+```bash
+adb install -r apk/WakeGuard-v1.0.1-strict-adb.apk
+```
 
 ## First-Time Pixel 9 Permission Setup
 Open **WakeGuard** and complete the **Setup Pixel 9 Anti-Exit Guard** checklist at the top of the home screen:
@@ -37,8 +39,7 @@ Open **WakeGuard** and complete the **Setup Pixel 9 Anti-Exit Guard** checklist 
 3. **Full-Screen Wake**
 4. **Display Over Other Apps**
 5. **Unrestricted Battery**
-6. **Strict Accessibility Guard**
-   - *Pixel 9 Android 15 note for sideloaded APKs*: If Android grays out **WakeGuard Anti-Exit Guard** with *"Restricted setting"*, tap **Open App Info** inside WakeGuard → tap the top-right **⋮** menu → **Allow restricted settings**, then return to Accessibility settings and turn on **WakeGuard Anti-Exit Guard**.
+6. *(Strict ADB build only)* **Strict Accessibility Guard** — if Android shows *"Restricted setting"*, tap **Open App Info** → top-right **⋮** menu → **Allow restricted settings**, then enable **WakeGuard Anti-Exit Guard**.
 
 ## Building & Testing
 ```bash
