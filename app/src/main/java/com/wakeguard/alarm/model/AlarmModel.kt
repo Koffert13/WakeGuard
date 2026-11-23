@@ -162,15 +162,10 @@ data class AlarmItem(
         get() = id.hashCode() and 0x7FFFFFFF
 
     fun formattedTime(): String {
-        val hour12 = when {
-            hour == 0 -> 12
-            hour > 12 -> hour - 12
-            else -> hour
-        }
-        return "%d:%02d".format(hour12, minute)
+        return "%02d:%02d".format(hour, minute)
     }
 
-    fun amPm(): String = if (hour < 12) "AM" else "PM"
+    fun amPm(): String = ""
 
     fun repeatSummary(): String {
         if (repeatDays.isEmpty()) return "Once"

@@ -71,14 +71,18 @@ import com.wakeguard.alarm.service.AlarmRingingState
 import com.wakeguard.alarm.service.RingingPhase
 import com.wakeguard.alarm.service.RingingSession
 import com.wakeguard.alarm.ui.games.MissionHost
+import com.wakeguard.alarm.ui.theme.WakeAccent
 import com.wakeguard.alarm.ui.theme.WakeAmber
 import com.wakeguard.alarm.ui.theme.WakeBg
+import com.wakeguard.alarm.ui.theme.WakeBorder
 import com.wakeguard.alarm.ui.theme.WakeCoral
 import com.wakeguard.alarm.ui.theme.WakeCoralDim
 import com.wakeguard.alarm.ui.theme.WakeEmerald
 import com.wakeguard.alarm.ui.theme.WakeEmeraldDim
 import com.wakeguard.alarm.ui.theme.WakeGuardTheme
+import com.wakeguard.alarm.ui.theme.WakeOnAccent
 import com.wakeguard.alarm.ui.theme.WakeSurface
+import com.wakeguard.alarm.ui.theme.WakeTextMuted
 import com.wakeguard.alarm.ui.theme.WakeTextPrimary
 import com.wakeguard.alarm.ui.theme.WakeTextSecondary
 import kotlinx.coroutines.delay
@@ -358,75 +362,61 @@ private fun WakeIntroScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
+            .padding(horizontal = 24.dp, vertical = 48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Guard badge
+        // Quiet status indicator
         Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .background(WakeCoralDim)
-                .border(1.dp, WakeCoral.copy(alpha = 0.5f), RoundedCornerShape(50))
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .clip(RoundedCornerShape(8.dp))
+                .background(WakeSurface)
+                .border(1.dp, WakeBorder, RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Rounded.Lock,
-                contentDescription = null,
-                tint = WakeCoral,
-                modifier = Modifier.size(16.dp)
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(WakeCoral)
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = when {
-                    session.isQuickTest -> "TEST MODE • ALARM RINGING"
-                    session.alarm.strictExitGuard -> "EXIT LOCKED • ALARM RINGING"
-                    else -> "ALARM RINGING"
+                    session.isQuickTest -> "Test alarm ringing"
+                    session.alarm.strictExitGuard -> "Exit guard active · Alarm ringing"
+                    else -> "Alarm ringing"
                 },
-                color = WakeCoral,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
+                color = WakeTextSecondary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
             )
         }
 
-        // Big Clock & Label
+        // 24-hour Clock & Label
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                modifier = Modifier
-                    .size(84.dp)
-                    .clip(CircleShape)
-                    .background(WakeEmeraldDim),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Alarm,
-                    contentDescription = null,
-                    tint = WakeEmerald,
-                    modifier = Modifier.size(44.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = currentTimeText,
                 style = MaterialTheme.typography.displayLarge,
-                fontSize = 66.sp,
+                fontSize = 68.sp,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                 color = WakeTextPrimary
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = session.alarm.label.ifBlank { "Wake Up!" },
+                text = session.alarm.label.ifBlank { "Wake up" },
                 style = MaterialTheme.typography.headlineSmall,
                 color = WakeTextSecondary,
                 textAlign = TextAlign.Center
             )
             if (session.escapeAttempts > 0) {
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Nice try! Exit blocked (${session.escapeAttempts}×)",
+                    text = "Exit blocked (${session.escapeAttempts}×)",
                     color = WakeAmber,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
@@ -441,35 +431,34 @@ private fun WakeIntroScreen(
                 color = WakeTextSecondary,
                 style = MaterialTheme.typography.bodyMedium
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Alarm mutes automatically while you play.",
-                color = WakeEmerald,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+                text = "Audio mutes while you play",
+                color = WakeTextMuted,
+                style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = onStartGame,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(68.dp),
-                shape = RoundedCornerShape(20.dp),
+                    .height(56.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = WakeEmerald,
-                    contentColor = Color(0xFF042219)
+                    containerColor = WakeTextPrimary,
+                    contentColor = WakeBg
                 )
             ) {
                 Icon(
                     imageVector = Icons.Rounded.PlayArrow,
                     contentDescription = null,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "START ${session.alarm.mission.displayName.uppercase()} (MUTE)",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    text = "Start ${session.alarm.mission.displayName}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
             if (onStopTest != null) {
@@ -478,23 +467,24 @@ private fun WakeIntroScreen(
                     onClick = onStopTest,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, WakeCoral.copy(alpha = 0.65f)),
+                        .height(48.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, WakeBorder),
                     colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = WakeSurface,
                         contentColor = WakeCoral
                     )
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "STOP TEST",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "Stop test",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -520,22 +510,23 @@ private fun MissionStatusHeader(
     ) {
         Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(50))
+                .clip(RoundedCornerShape(8.dp))
                 .background(if (isMuted) WakeEmeraldDim else WakeCoralDim)
-                .padding(horizontal = 12.dp, vertical = 6.dp),
+                .border(1.dp, WakeBorder, RoundedCornerShape(8.dp))
+                .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = if (isMuted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp,
                 contentDescription = null,
                 tint = if (isMuted) WakeEmerald else WakeCoral,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(14.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = if (isMuted) "ALARM MUTED" else "ALARM RINGING",
+                text = if (isMuted) "Muted" else "Ringing",
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Medium,
                 color = if (isMuted) WakeEmerald else WakeCoral
             )
         }
@@ -579,24 +570,24 @@ private fun MissionStatusHeader(
             if (onStopTest != null) {
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(WakeCoralDim)
-                        .border(1.dp, WakeCoral.copy(alpha = 0.6f), RoundedCornerShape(50))
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(WakeSurface)
+                        .border(1.dp, WakeBorder, RoundedCornerShape(8.dp))
                         .clickable(onClick = onStopTest)
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Stop Test",
+                        contentDescription = "Stop test",
                         tint = WakeCoral,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Stop Test",
+                        text = "Stop test",
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Medium,
                         color = WakeCoral
                     )
                 }
@@ -622,65 +613,66 @@ private fun ResumeAlarmOverlay(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(28.dp))
+                .clip(RoundedCornerShape(14.dp))
                 .background(WakeSurface)
-                .border(2.dp, WakeCoral.copy(alpha = 0.65f), RoundedCornerShape(28.dp))
-                .padding(28.dp),
+                .border(1.dp, WakeBorder, RoundedCornerShape(14.dp))
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 imageVector = Icons.Rounded.Warning,
                 contentDescription = null,
                 tint = WakeCoral,
-                modifier = Modifier.size(54.dp)
+                modifier = Modifier.size(36.dp)
             )
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = if (isCrash) "CRASHED! ALARM RESUMED" else "ALARM RESUMED",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = WakeCoral,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
+                text = if (isCrash) "Alarm resumed" else "Still awake?",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Medium,
                 color = WakeTextPrimary,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = WakeTextSecondary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = onRetryOrContinue,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp),
-                shape = RoundedCornerShape(18.dp),
+                    .height(52.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = WakeEmerald,
-                    contentColor = Color(0xFF042219)
+                    containerColor = WakeTextPrimary,
+                    contentColor = WakeBg
                 )
             ) {
                 Icon(
                     imageVector = if (isCrash) Icons.Rounded.Refresh else Icons.Rounded.PlayArrow,
-                    contentDescription = null
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (isCrash) "TRY AGAIN (MUTE ALARM)" else "CONTINUE (MUTE ALARM)",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    text = if (isCrash) "Try again" else "Continue",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
             if (onStopTest != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 OutlinedButton(
                     onClick = onStopTest,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, WakeCoral.copy(alpha = 0.65f)),
+                        .height(48.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, WakeBorder),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = WakeCoral
                     )
@@ -688,13 +680,13 @@ private fun ResumeAlarmOverlay(
                     Icon(
                         imageVector = Icons.Rounded.Close,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "STOP TEST",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "Stop test",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -722,30 +714,30 @@ private fun MissionCompletedScreen(
         )
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "Good Morning!",
+            text = "Good morning",
             style = MaterialTheme.typography.headlineLarge,
             color = WakeTextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "${alarmLabel.ifBlank { "Alarm" }} dismissed.",
+            text = "${alarmLabel.ifBlank { "Alarm" }} dismissed",
             style = MaterialTheme.typography.titleMedium,
             color = WakeTextSecondary
         )
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
         Button(
             onClick = onDone,
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = WakeEmerald,
-                contentColor = Color(0xFF042219)
+                containerColor = WakeTextPrimary,
+                contentColor = WakeBg
             )
         ) {
-            Text("Done", fontWeight = FontWeight.Bold)
+            Text("Done", fontWeight = FontWeight.Medium)
         }
     }
 }
 
 private fun formatNowTime(): String {
-    return SimpleDateFormat("h:mm", Locale.getDefault()).format(Date())
+    return SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 }

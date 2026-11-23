@@ -69,13 +69,15 @@ import com.wakeguard.alarm.model.MathDifficulty
 import com.wakeguard.alarm.model.MemoryGridSize
 import com.wakeguard.alarm.model.MissionConfig
 import com.wakeguard.alarm.model.SnakeSpeed
+import com.wakeguard.alarm.ui.theme.WakeAccent
+import com.wakeguard.alarm.ui.theme.WakeAccentDim
 import com.wakeguard.alarm.ui.theme.WakeBg
 import com.wakeguard.alarm.ui.theme.WakeBorder
 import com.wakeguard.alarm.ui.theme.WakeCoral
-import com.wakeguard.alarm.ui.theme.WakeEmerald
-import com.wakeguard.alarm.ui.theme.WakeEmeraldDim
+import com.wakeguard.alarm.ui.theme.WakeOnAccent
 import com.wakeguard.alarm.ui.theme.WakeSurface
 import com.wakeguard.alarm.ui.theme.WakeSurfaceHigh
+import com.wakeguard.alarm.ui.theme.WakeTextMuted
 import com.wakeguard.alarm.ui.theme.WakeTextPrimary
 import com.wakeguard.alarm.ui.theme.WakeTextSecondary
 import kotlin.math.roundToInt
@@ -93,7 +95,7 @@ fun AlarmEditorDialog(
     val timeState = rememberTimePickerState(
         initialHour = initialAlarm.hour,
         initialMinute = initialAlarm.minute,
-        is24Hour = false
+        is24Hour = true
     )
 
     var label by remember { mutableStateOf(initialAlarm.label) }
@@ -203,7 +205,7 @@ fun AlarmEditorDialog(
                         Icon(Icons.Rounded.Close, contentDescription = "Cancel", tint = WakeTextPrimary)
                     }
                     Text(
-                        text = if (isNew) "New Alarm" else "Edit Alarm",
+                        text = if (isNew) "New alarm" else "Edit alarm",
                         style = MaterialTheme.typography.titleMedium,
                         color = WakeTextPrimary
                     )
@@ -213,7 +215,7 @@ fun AlarmEditorDialog(
                                 initialAlarm.copy(
                                     hour = timeState.hour,
                                     minute = timeState.minute,
-                                    label = label.trim().ifEmpty { "Wake Up" },
+                                    label = label.trim().ifEmpty { "Wake up" },
                                     enabled = true,
                                     repeatDays = repeatDays,
                                     mission = activeMission,
@@ -227,13 +229,13 @@ fun AlarmEditorDialog(
                                 )
                             )
                         },
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = WakeEmerald,
-                            contentColor = Color(0xFF042219)
+                            containerColor = WakeTextPrimary,
+                            contentColor = WakeBg
                         )
                     ) {
-                        Text("Save", fontWeight = FontWeight.Bold)
+                        Text("Save", fontWeight = FontWeight.Medium)
                     }
                 }
 
@@ -242,31 +244,32 @@ fun AlarmEditorDialog(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Time Input Card
+                    // Time Input Card (24-hour)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(22.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(WakeSurface)
-                            .padding(top = 18.dp, bottom = 10.dp),
+                            .border(1.dp, WakeBorder, RoundedCornerShape(12.dp))
+                            .padding(top = 16.dp, bottom = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         TimeInput(state = timeState)
                     }
 
                     // Repeat Days
-                    SectionCard(title = "Repeat Days") {
+                    SectionCard(title = "Repeat") {
                         val days = listOf(
-                            1 to "S",
                             2 to "M",
                             3 to "T",
                             4 to "W",
                             5 to "T",
                             6 to "F",
-                            7 to "S"
+                            7 to "S",
+                            1 to "S"
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -276,9 +279,14 @@ fun AlarmEditorDialog(
                                 val selected = calDay in repeatDays
                                 Box(
                                     modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(if (selected) WakeEmerald else WakeSurfaceHigh)
+                                        .size(38.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (selected) WakeAccent else WakeSurfaceHigh)
+                                        .border(
+                                            1.dp,
+                                            if (selected) WakeAccent else WakeBorder,
+                                            RoundedCornerShape(8.dp)
+                                        )
                                         .clickable {
                                             repeatDays = if (selected) {
                                                 repeatDays - calDay
@@ -290,8 +298,8 @@ fun AlarmEditorDialog(
                                 ) {
                                     Text(
                                         text = shortLabel,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (selected) Color(0xFF042219) else WakeTextSecondary
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (selected) WakeOnAccent else WakeTextSecondary
                                     )
                                 }
                             }
@@ -302,14 +310,14 @@ fun AlarmEditorDialog(
                     OutlinedTextField(
                         value = label,
                         onValueChange = { label = it },
-                        label = { Text("Alarm Label") },
+                        label = { Text("Label") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(8.dp)
                     )
 
                     // Mission Picker Card
-                    SectionCard(title = "Wake-Up Mini-Game (Alarm Mutes While Playing)") {
+                    SectionCard(title = "Wake-up mission") {
                         val gameTabs = listOf(
                             0 to "Snake",
                             1 to "Math",
@@ -328,18 +336,19 @@ fun AlarmEditorDialog(
                                     FilterChip(
                                         selected = selectedTab == idx,
                                         onClick = { selectedTab = idx },
+                                        shape = RoundedCornerShape(8.dp),
                                         label = {
                                             Text(
                                                 text = name,
                                                 fontSize = 12.sp,
-                                                fontWeight = FontWeight.SemiBold,
+                                                fontWeight = FontWeight.Medium,
                                                 maxLines = 1
                                             )
                                         },
                                         modifier = Modifier.weight(1f),
                                         colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = WakeEmeraldDim,
-                                            selectedLabelColor = WakeEmerald
+                                            selectedContainerColor = WakeAccentDim,
+                                            selectedLabelColor = WakeAccent
                                         )
                                     )
                                 }
@@ -347,6 +356,14 @@ fun AlarmEditorDialog(
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
+
+                        // Live Alarmy-style preview of the selected game & difficulty
+                        GamePreviewCard(
+                            mission = activeMission,
+                            onPractice = { practicingMission = activeMission }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         when (selectedTab) {
                             0 -> {
@@ -586,25 +603,16 @@ fun AlarmEditorDialog(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
-                        OutlinedButton(
-                            onClick = { practicingMission = activeMission },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Icon(Icons.Rounded.PlayArrow, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Practice ${activeMission.displayName}")
-                        }
                     }
 
                     // Sound & Guard Settings
-                    SectionCard(title = "Sound & Anti-Exit Guard") {
+                    SectionCard(title = "Sound and exit guard") {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(WakeSurfaceHigh)
+                                .border(1.dp, WakeBorder, RoundedCornerShape(8.dp))
                                 .clickable {
                                     val pickerIntent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                                         putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
@@ -617,19 +625,19 @@ fun AlarmEditorDialog(
                                     }
                                     ringtoneLauncher.launch(pickerIntent)
                                 }
-                                .padding(14.dp),
+                                .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Rounded.MusicNote, contentDescription = null, tint = WakeEmerald)
+                                Icon(Icons.Rounded.MusicNote, contentDescription = null, tint = WakeTextSecondary, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
-                                    Text("Alarm Sound", fontSize = 13.sp, color = WakeTextSecondary)
-                                    Text(soundTitle, color = WakeTextPrimary, fontWeight = FontWeight.SemiBold)
+                                    Text("Alarm sound", fontSize = 12.sp, color = WakeTextMuted)
+                                    Text(soundTitle, color = WakeTextPrimary, fontWeight = FontWeight.Medium)
                                 }
                             }
-                            Text("Change", color = WakeEmerald, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text("Change", color = WakeAccent, fontWeight = FontWeight.Medium, fontSize = 13.sp)
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -681,16 +689,16 @@ fun AlarmEditorDialog(
                         OutlinedButton(
                             onClick = onDelete,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = WakeCoral)
                         ) {
-                            Icon(Icons.Rounded.Delete, contentDescription = null)
+                            Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Delete Alarm", fontWeight = FontWeight.Bold)
+                            Text("Delete alarm", fontWeight = FontWeight.Medium)
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(28.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }
@@ -723,8 +731,13 @@ private fun DifficultyChipRow(
             FilterChip(
                 selected = selected == diff,
                 onClick = { onSelect(diff) },
+                shape = RoundedCornerShape(8.dp),
                 label = { Text(diff.label) },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = WakeAccentDim,
+                    selectedLabelColor = WakeAccent
+                )
             )
         }
     }
@@ -738,15 +751,15 @@ private fun SectionCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(WakeSurface)
-            .border(1.dp, WakeBorder, RoundedCornerShape(22.dp))
+            .border(1.dp, WakeBorder, RoundedCornerShape(12.dp))
             .padding(16.dp)
     ) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelLarge,
-            color = WakeEmerald
+            color = WakeTextSecondary
         )
         Spacer(modifier = Modifier.height(12.dp))
         content()

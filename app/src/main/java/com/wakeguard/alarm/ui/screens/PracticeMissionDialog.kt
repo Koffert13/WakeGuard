@@ -108,16 +108,16 @@ fun PracticeMissionDialog(
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = if (won) "Mission Cleared!" else "Crashed!",
+                                text = if (won) "Mission cleared" else "Try again",
                                 style = MaterialTheme.typography.headlineLarge,
                                 color = if (won) WakeEmerald else WakeCoral
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = if (won) {
-                                    "In a real alarm, this immediately stops the alarm."
+                                    "In a real alarm, this silences the alarm"
                                 } else {
-                                    "${bannerText}\n(In a real alarm, audio resumes here!)"
+                                    "${bannerText}\nIn a real alarm, audio resumes here"
                                 },
                                 color = WakeTextPrimary,
                                 style = MaterialTheme.typography.bodyMedium
@@ -130,19 +130,19 @@ fun PracticeMissionDialog(
                                         won = false
                                         resetSignal++
                                     },
-                                    shape = RoundedCornerShape(14.dp),
+                                    shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = WakeEmerald,
-                                        contentColor = Color(0xFF042219)
+                                        containerColor = WakeTextPrimary,
+                                        contentColor = WakeBg
                                     )
                                 ) {
-                                    Text("Play Again", fontWeight = FontWeight.Bold)
+                                    Text("Play again", fontWeight = FontWeight.Medium)
                                 }
                                 Button(
                                     onClick = onDismiss,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Text("Done")
+                                    Text("Done", fontWeight = FontWeight.Medium)
                                 }
                             }
                         }

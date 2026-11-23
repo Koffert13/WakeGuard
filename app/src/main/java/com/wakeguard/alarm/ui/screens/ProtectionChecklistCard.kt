@@ -5,21 +5,22 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
-import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,16 +34,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wakeguard.alarm.permissions.GuardPermissionsStatus
+import com.wakeguard.alarm.ui.theme.WakeAccent
 import com.wakeguard.alarm.ui.theme.WakeAmber
+import com.wakeguard.alarm.ui.theme.WakeBg
 import com.wakeguard.alarm.ui.theme.WakeBorder
 import com.wakeguard.alarm.ui.theme.WakeEmerald
-import com.wakeguard.alarm.ui.theme.WakeEmeraldDim
 import com.wakeguard.alarm.ui.theme.WakeSurface
 import com.wakeguard.alarm.ui.theme.WakeSurfaceHigh
+import com.wakeguard.alarm.ui.theme.WakeTextMuted
 import com.wakeguard.alarm.ui.theme.WakeTextPrimary
 import com.wakeguard.alarm.ui.theme.WakeTextSecondary
 
@@ -63,13 +67,9 @@ fun ProtectionChecklistCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(WakeSurface)
-            .border(
-                width = 1.dp,
-                color = if (status.allGranted) WakeEmerald.copy(alpha = 0.45f) else WakeAmber.copy(alpha = 0.45f),
-                shape = RoundedCornerShape(22.dp)
-            )
+            .border(1.dp, WakeBorder, RoundedCornerShape(12.dp))
             .padding(16.dp)
     ) {
         Row(
@@ -80,76 +80,78 @@ fun ProtectionChecklistCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Rounded.Shield,
-                    contentDescription = null,
-                    tint = if (status.allGranted) WakeEmerald else WakeAmber,
-                    modifier = Modifier.size(24.dp)
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(if (status.allGranted) WakeEmerald else WakeAmber)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
                         text = if (status.allGranted) {
-                            "Pixel 9 Anti-Exit Guard Ready"
+                            "Exit guard ready"
                         } else {
-                            "Setup Pixel 9 Anti-Exit Guard"
+                            "Finish exit guard setup"
                         },
                         style = MaterialTheme.typography.titleMedium,
                         color = WakeTextPrimary
                     )
                     Text(
-                        text = "${status.grantedCount} / ${status.totalCount} protections enabled",
+                        text = "${status.grantedCount}/${status.totalCount} permissions active",
                         fontSize = 12.sp,
-                        color = if (status.allGranted) WakeEmerald else WakeAmber
+                        fontFamily = FontFamily.Monospace,
+                        color = WakeTextMuted
                     )
                 }
             }
             Icon(
                 imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                 contentDescription = null,
-                tint = WakeTextSecondary
+                tint = WakeTextMuted,
+                modifier = Modifier.size(20.dp)
             )
         }
 
         AnimatedVisibility(visible = expanded) {
             Column(
-                modifier = Modifier.padding(top = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.padding(top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 PermissionRow(
                     title = "Notifications",
-                    subtitle = "Required to fire active alarm screen",
+                    subtitle = "Required to show active alarm screen",
                     granted = status.notificationsGranted,
                     onGrant = onRequestNotifications
                 )
                 PermissionRow(
-                    title = "Exact Alarms",
-                    subtitle = "Rings on the exact second even in Doze",
+                    title = "Exact alarms",
+                    subtitle = "Triggers on the exact second during Doze",
                     granted = status.exactAlarmGranted,
                     onGrant = onOpenExactAlarms
                 )
                 PermissionRow(
-                    title = "Full-Screen Wake",
-                    subtitle = "Pops straight over the Pixel 9 lock screen",
+                    title = "Full-screen wake",
+                    subtitle = "Opens over the lock screen",
                     granted = status.fullScreenIntentGranted,
                     onGrant = onOpenFullScreenIntent
                 )
                 PermissionRow(
-                    title = "Display Over Other Apps",
-                    subtitle = "Instantly pulls you back if you swipe home",
+                    title = "Display over other apps",
+                    subtitle = "Returns to the mission if you swipe home",
                     granted = status.overlayGranted,
                     onGrant = onOpenOverlay
                 )
                 PermissionRow(
-                    title = "Unrestricted Battery",
-                    subtitle = "Prevents Pixel from pausing the ringing service",
+                    title = "Unrestricted battery",
+                    subtitle = "Keeps the ringing service running",
                     granted = status.batteryUnrestricted,
                     onGrant = onOpenBattery
                 )
                 if (status.hasAccessibilityGuard) {
                     PermissionRow(
-                        title = "Strict Accessibility Guard",
-                        subtitle = "Blocks Home, Recents, & Power Menu while ringing",
+                        title = "Accessibility guard",
+                        subtitle = "Blocks Home, Recents, and Power menu while ringing",
                         granted = status.accessibilityGuardEnabled,
                         onGrant = onOpenAccessibility
                     )
@@ -158,21 +160,22 @@ fun ProtectionChecklistCard(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(WakeSurfaceHigh)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(WakeBg)
+                                .border(1.dp, WakeBorder, RoundedCornerShape(8.dp))
                                 .padding(12.dp)
                         ) {
                             Text(
-                                text = "Pixel 9 sideload tip: If Accessibility says \"Restricted setting\", tap App Info → top-right ⋮ menu → \"Allow restricted settings\", then enable WakeGuard Anti-Exit Guard.",
+                                text = "If Android shows \"Restricted setting\", open App Info, tap the top-right menu, choose \"Allow restricted settings\", then enable WakeGuard in Accessibility.",
                                 fontSize = 12.sp,
                                 color = WakeTextSecondary,
-                                lineHeight = 17.sp
+                                lineHeight = 18.sp
                             )
                             TextButton(
                                 onClick = onOpenAppInfo,
                                 modifier = Modifier.align(Alignment.End)
                             ) {
-                                Text("Open App Info", color = WakeEmerald, fontWeight = FontWeight.SemiBold)
+                                Text("Open App Info", color = WakeAccent, fontWeight = FontWeight.Medium)
                             }
                         }
                     }
@@ -192,8 +195,9 @@ private fun PermissionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (granted) WakeEmeraldDim.copy(alpha = 0.45f) else WakeSurfaceHigh)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (granted) WakeBg else WakeSurfaceHigh)
+            .border(1.dp, WakeBorder, RoundedCornerShape(8.dp))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -205,22 +209,22 @@ private fun PermissionRow(
             Icon(
                 imageVector = if (granted) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
                 contentDescription = null,
-                tint = if (granted) WakeEmerald else WakeAmber,
-                modifier = Modifier.size(20.dp)
+                tint = if (granted) WakeEmerald else WakeTextMuted,
+                modifier = Modifier.size(18.dp)
             )
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
                     text = title,
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     color = WakeTextPrimary
                 )
                 Text(
                     text = subtitle,
-                    fontSize = 11.sp,
-                    color = WakeTextSecondary,
-                    lineHeight = 14.sp
+                    fontSize = 12.sp,
+                    color = WakeTextMuted,
+                    lineHeight = 16.sp
                 )
             }
         }
@@ -228,9 +232,13 @@ private fun PermissionRow(
             Spacer(modifier = Modifier.width(8.dp))
             FilledTonalButton(
                 onClick = onGrant,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(6.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = WakeTextPrimary,
+                    contentColor = WakeBg
+                )
             ) {
-                Text("Enable", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("Enable", fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
         }
     }

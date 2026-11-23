@@ -186,12 +186,12 @@ fun SnakeGameView(
             Box(
                 modifier = Modifier
                     .aspectRatio(boardAspect)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF0E1621))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF1A1815))
                     .border(
-                        width = 2.dp,
-                        color = if (config.wrapWalls) WakeEmerald.copy(alpha = 0.45f) else WakeBorder,
-                        shape = RoundedCornerShape(20.dp)
+                        width = 1.dp,
+                        color = WakeBorder,
+                        shape = RoundedCornerShape(12.dp)
                     )
                     .pointerInput(paused, resetSignal) {
                         detectDragGestures(
@@ -227,7 +227,7 @@ fun SnakeGameView(
                     val offsetY = (size.height - cellSize * gameState.rows) / 2f
 
                     // Subtle grid lines
-                    val gridColor = Color(0xFF1A2636)
+                    val gridColor = Color(0x12EFE9DE)
                     for (c in 1 until gameState.cols) {
                         val x = offsetX + c * cellSize
                         drawLine(gridColor, Offset(x, offsetY), Offset(x, offsetY + cellSize * gameState.rows), 1f)

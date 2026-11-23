@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -35,11 +36,13 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -51,8 +54,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,13 +72,14 @@ import com.wakeguard.alarm.service.AlarmRingingState
 import com.wakeguard.alarm.ui.screens.AlarmEditorDialog
 import com.wakeguard.alarm.ui.screens.PracticeMissionDialog
 import com.wakeguard.alarm.ui.screens.ProtectionChecklistCard
+import com.wakeguard.alarm.ui.theme.WakeAccent
 import com.wakeguard.alarm.ui.theme.WakeBg
 import com.wakeguard.alarm.ui.theme.WakeBorder
-import com.wakeguard.alarm.ui.theme.WakeEmerald
-import com.wakeguard.alarm.ui.theme.WakeEmeraldDim
 import com.wakeguard.alarm.ui.theme.WakeGuardTheme
+import com.wakeguard.alarm.ui.theme.WakeOnAccent
 import com.wakeguard.alarm.ui.theme.WakeSurface
 import com.wakeguard.alarm.ui.theme.WakeSurfaceHigh
+import com.wakeguard.alarm.ui.theme.WakeTextMuted
 import com.wakeguard.alarm.ui.theme.WakeTextPrimary
 import com.wakeguard.alarm.ui.theme.WakeTextSecondary
 
@@ -96,7 +100,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // If an alarm is actively ringing and the user somehow opened MainActivity, jump straight back!
         if (AlarmRingingState.isRingingActive) {
             startActivity(
                 Intent(this, AlarmActivity::class.java).apply {
@@ -123,7 +126,6 @@ private fun HomeScreen(app: WakeGuardApp) {
         permissionStatus = PermissionGuardHelper.checkStatus(context)
     }
 
-    // Re-check permissions every time user returns from Android Settings
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -146,11 +148,12 @@ private fun HomeScreen(app: WakeGuardApp) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { editingAlarm = AlarmItem() to true },
-                containerColor = WakeEmerald,
-                contentColor = Color(0xFF042219),
-                shape = RoundedCornerShape(20.dp)
+                containerColor = WakeTextPrimary,
+                contentColor = WakeBg,
+                shape = RoundedCornerShape(12.dp),
+                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
             ) {
-                Icon(Icons.Rounded.Add, contentDescription = "Add Alarm", modifier = Modifier.size(28.dp))
+                Icon(Icons.Rounded.Add, contentDescription = "Add alarm", modifier = Modifier.size(24.dp))
             }
         }
     ) { innerPadding ->
@@ -158,38 +161,45 @@ private fun HomeScreen(app: WakeGuardApp) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // App Header
             item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "WakeGuard",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = WakeTextPrimary
+                Column(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+                    Text(
+                        text = "WakeGuard",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = WakeTextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (nextScheduled != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(WakeAccent)
                             )
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (nextScheduled != null) {
-                                    "Next alarm ${AlarmTimeCalculator.formatTimeUntil(nextScheduled.second)} • ${nextScheduled.first.formattedTime()} ${nextScheduled.first.amPm()}"
-                                } else {
-                                    "Zero ads • Strict alarm missions"
-                                },
+                                text = "Next at ${nextScheduled.first.formattedTime()} · ${AlarmTimeCalculator.formatTimeUntil(nextScheduled.second)}",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (nextScheduled != null) WakeEmerald else WakeTextSecondary
+                                color = WakeTextSecondary,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        } else {
+                            Text(
+                                text = "No active alarms",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = WakeTextMuted
                             )
                         }
                     }
                 }
             }
 
-            // Pixel 9 Anti-Exit Protection Checklist
+            // Anti-Exit Protection Checklist
             item {
                 ProtectionChecklistCard(
                     status = permissionStatus,
@@ -225,23 +235,25 @@ private fun HomeScreen(app: WakeGuardApp) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(22.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(WakeSurface)
-                            .padding(32.dp),
+                            .border(1.dp, WakeBorder, RoundedCornerShape(12.dp))
+                            .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Alarm,
                             contentDescription = null,
-                            tint = WakeTextSecondary,
-                            modifier = Modifier.size(44.dp)
+                            tint = WakeTextMuted,
+                            modifier = Modifier.size(28.dp)
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text("No alarms yet", style = MaterialTheme.typography.titleMedium, color = WakeTextPrimary)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("No alarms scheduled", style = MaterialTheme.typography.titleMedium, color = WakeTextPrimary)
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Tap + to add your first Snake alarm.",
+                            "Tap + to add an alarm",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = WakeTextSecondary
+                            color = WakeTextMuted
                         )
                     }
                 }
@@ -249,6 +261,7 @@ private fun HomeScreen(app: WakeGuardApp) {
                 items(alarms, key = { it.id }) { alarm ->
                     AlarmCard(
                         alarm = alarm,
+                        isNext = nextScheduled?.first?.id == alarm.id,
                         onClick = { editingAlarm = alarm to false },
                         onToggle = { enabled ->
                             val updated = app.repository.setEnabled(alarm.id, enabled) ?: return@AlarmCard
@@ -269,8 +282,8 @@ private fun HomeScreen(app: WakeGuardApp) {
                             app.scheduler.scheduleQuickTest(alarm.id, delaySeconds = 5)
                             Toast.makeText(
                                 context,
-                                "Test alarm firing in 5 seconds! Lock your phone or stay here.",
-                                Toast.LENGTH_LONG
+                                "Test alarm in 5 seconds",
+                                Toast.LENGTH_SHORT
                             ).show()
                         },
                         onPractice = {
@@ -294,7 +307,7 @@ private fun HomeScreen(app: WakeGuardApp) {
                 if (trigger != null) {
                     Toast.makeText(
                         context,
-                        "Alarm scheduled ${AlarmTimeCalculator.formatTimeUntil(trigger)}",
+                        "Scheduled ${AlarmTimeCalculator.formatTimeUntil(trigger)}",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -323,6 +336,7 @@ private fun HomeScreen(app: WakeGuardApp) {
 @Composable
 private fun AlarmCard(
     alarm: AlarmItem,
+    isNext: Boolean,
     onClick: () -> Unit,
     onToggle: (Boolean) -> Unit,
     onQuickTest: () -> Unit,
@@ -331,41 +345,41 @@ private fun AlarmCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(WakeSurface)
-            .border(
-                width = 1.dp,
-                color = if (alarm.enabled) WakeEmerald.copy(alpha = 0.4f) else WakeBorder,
-                shape = RoundedCornerShape(22.dp)
-            )
+            .border(1.dp, WakeBorder, RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(18.dp)
+            .padding(20.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.alpha(if (alarm.enabled) 1f else 0.55f)) {
-                Row(verticalAlignment = Alignment.Bottom) {
+            Column(modifier = Modifier.alpha(if (alarm.enabled) 1f else 0.45f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isNext) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(WakeAccent)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
                     Text(
                         text = alarm.formattedTime(),
-                        fontSize = 42.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = 40.sp,
+                        lineHeight = 44.sp,
+                        fontWeight = FontWeight.Normal,
+                        fontFamily = FontFamily.Monospace,
                         color = WakeTextPrimary,
                         letterSpacing = (-1).sp
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = alarm.amPm(),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = WakeTextSecondary,
-                        modifier = Modifier.padding(bottom = 7.dp)
-                    )
                 }
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${alarm.label} • ${alarm.repeatSummary()}",
+                    text = "${alarm.label} · ${alarm.repeatSummary()}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = WakeTextSecondary
                 )
@@ -373,11 +387,18 @@ private fun AlarmCard(
 
             Switch(
                 checked = alarm.enabled,
-                onCheckedChange = onToggle
+                onCheckedChange = onToggle,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = WakeOnAccent,
+                    checkedTrackColor = WakeAccent,
+                    uncheckedThumbColor = WakeTextMuted,
+                    uncheckedTrackColor = WakeSurfaceHigh,
+                    uncheckedBorderColor = WakeBorder
+                )
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -389,61 +410,58 @@ private fun AlarmCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(WakeEmeraldDim)
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                ) {
-                    Text(
-                        text = alarm.mission.summary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = WakeEmerald
-                    )
-                }
+                Text(
+                    text = alarm.mission.summary,
+                    fontSize = 12.sp,
+                    color = WakeTextMuted,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1
+                )
                 if (alarm.strictExitGuard) {
                     Icon(
                         imageVector = Icons.Rounded.Lock,
-                        contentDescription = "Strict Guard On",
-                        tint = WakeTextSecondary,
-                        modifier = Modifier.size(16.dp)
+                        contentDescription = "Exit guard active",
+                        tint = WakeTextMuted,
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 IconButton(
                     onClick = onPractice,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.SportsEsports,
-                        contentDescription = "Practice Game",
+                        contentDescription = "Practice",
                         tint = WakeTextSecondary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(4.dp))
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .background(WakeSurfaceHigh)
+                        .border(1.dp, WakeBorder, RoundedCornerShape(8.dp))
                         .clickable(onClick = onQuickTest)
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.PlayArrow,
                         contentDescription = "Test in 5s",
-                        tint = WakeEmerald,
-                        modifier = Modifier.size(16.dp)
+                        tint = WakeAccent,
+                        modifier = Modifier.size(14.dp)
                     )
-                    Spacer(modifier = Modifier.width(3.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Test 5s",
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Medium,
                         color = WakeTextPrimary
                     )
                 }
