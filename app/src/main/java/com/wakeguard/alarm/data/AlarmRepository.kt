@@ -34,7 +34,11 @@ class AlarmRepository(context: Context) {
                     label = "Wake Up",
                     enabled = false,
                     repeatDays = setOf(2, 3, 4, 5, 6),
-                    mission = MissionConfig.Snake(targetLength = 12, speed = SnakeSpeed.NORMAL),
+                    mission = MissionConfig.Snake(
+                        targetLength = 8,
+                        speed = SnakeSpeed.CHILL,
+                        wrapWalls = true
+                    ),
                     strictExitGuard = true
                 )
             )

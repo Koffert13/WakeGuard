@@ -5,10 +5,17 @@ import kotlinx.serialization.Serializable
 import java.util.UUID
 
 @Serializable
+enum class GameDifficulty(val label: String) {
+    EASY("Easy"),
+    MEDIUM("Medium"),
+    HARD("Hard")
+}
+
+@Serializable
 enum class SnakeSpeed(val label: String, val tickMs: Long) {
-    CHILL("Chill", 210L),
-    NORMAL("Normal", 155L),
-    FAST("Fast", 115L)
+    CHILL("Chill", 280L),
+    NORMAL("Normal", 220L),
+    FAST("Fast", 165L)
 }
 
 @Serializable
@@ -32,13 +39,37 @@ sealed interface MissionConfig {
     @Serializable
     @SerialName("snake")
     data class Snake(
-        val targetLength: Int = 12,
-        val speed: SnakeSpeed = SnakeSpeed.NORMAL,
-        val wrapWalls: Boolean = false
+        val targetLength: Int = 8,
+        val speed: SnakeSpeed = SnakeSpeed.CHILL,
+        val wrapWalls: Boolean = true,
+        val difficulty: GameDifficulty = GameDifficulty.EASY
     ) : MissionConfig {
         override val displayName: String get() = "Snake"
         override val summary: String
             get() = "Snake • Reach $targetLength (${speed.label}${if (wrapWalls) ", Wrap" else ""})"
+
+        companion object {
+            fun forDifficulty(difficulty: GameDifficulty): Snake = when (difficulty) {
+                GameDifficulty.EASY -> Snake(
+                    targetLength = 7,
+                    speed = SnakeSpeed.CHILL,
+                    wrapWalls = true,
+                    difficulty = GameDifficulty.EASY
+                )
+                GameDifficulty.MEDIUM -> Snake(
+                    targetLength = 10,
+                    speed = SnakeSpeed.NORMAL,
+                    wrapWalls = true,
+                    difficulty = GameDifficulty.MEDIUM
+                )
+                GameDifficulty.HARD -> Snake(
+                    targetLength = 14,
+                    speed = SnakeSpeed.FAST,
+                    wrapWalls = false,
+                    difficulty = GameDifficulty.HARD
+                )
+            }
+        }
     }
 
     @Serializable
@@ -56,11 +87,53 @@ sealed interface MissionConfig {
     @SerialName("memory")
     data class Memory(
         val rounds: Int = 3,
-        val gridSize: MemoryGridSize = MemoryGridSize.GRID_3X3
+        val gridSize: MemoryGridSize = MemoryGridSize.GRID_3X3,
+        val difficulty: GameDifficulty = GameDifficulty.EASY
     ) : MissionConfig {
         override val displayName: String get() = "Memory Tiles"
         override val summary: String
-            get() = "Memory • $rounds rounds (${gridSize.label})"
+            get() = "Memory • $rounds rounds (${difficulty.label}, ${gridSize.label})"
+
+        companion object {
+            fun forDifficulty(difficulty: GameDifficulty): Memory = when (difficulty) {
+                GameDifficulty.EASY -> Memory(rounds = 3, gridSize = MemoryGridSize.GRID_3X3, difficulty = GameDifficulty.EASY)
+                GameDifficulty.MEDIUM -> Memory(rounds = 3, gridSize = MemoryGridSize.GRID_4X4, difficulty = GameDifficulty.MEDIUM)
+                GameDifficulty.HARD -> Memory(rounds = 4, gridSize = MemoryGridSize.GRID_4X4, difficulty = GameDifficulty.HARD)
+            }
+        }
+    }
+
+    @Serializable
+    @SerialName("color_match")
+    data class ColorMatch(
+        val rounds: Int = 6,
+        val difficulty: GameDifficulty = GameDifficulty.EASY
+    ) : MissionConfig {
+        override val displayName: String get() = "Color Trap"
+        override val summary: String
+            get() = "Color Trap • $rounds rounds (${difficulty.label})"
+    }
+
+    @Serializable
+    @SerialName("number_order")
+    data class NumberOrder(
+        val rounds: Int = 2,
+        val difficulty: GameDifficulty = GameDifficulty.EASY
+    ) : MissionConfig {
+        override val displayName: String get() = "Tap 1→N"
+        override val summary: String
+            get() = "Tap 1→N • $rounds rounds (${difficulty.label})"
+    }
+
+    @Serializable
+    @SerialName("sequence")
+    data class Sequence(
+        val rounds: Int = 3,
+        val difficulty: GameDifficulty = GameDifficulty.EASY
+    ) : MissionConfig {
+        override val displayName: String get() = "Pattern Echo"
+        override val summary: String
+            get() = "Pattern Echo • $rounds rounds (${difficulty.label})"
     }
 }
 

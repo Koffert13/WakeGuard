@@ -48,5 +48,35 @@ fun MissionHost(
             onMissionComplete = onMissionComplete,
             modifier = modifier
         )
+
+        is MissionConfig.ColorMatch -> ColorMatchGameView(
+            config = mission,
+            paused = paused,
+            resetSignal = resetSignal,
+            onInteraction = onInteraction,
+            onCrash = onCrash,
+            onMissionComplete = onMissionComplete,
+            modifier = modifier
+        )
+
+        is MissionConfig.NumberOrder -> NumberOrderGameView(
+            config = mission,
+            paused = paused,
+            resetSignal = resetSignal,
+            onInteraction = onInteraction,
+            onCrash = onCrash,
+            onMissionComplete = onMissionComplete,
+            modifier = modifier
+        )
+
+        is MissionConfig.Sequence -> SequenceGameView(
+            config = mission,
+            paused = paused,
+            resetSignal = resetSignal,
+            onInteraction = onInteraction,
+            onCrash = onCrash,
+            onMissionComplete = onMissionComplete,
+            modifier = modifier
+        )
     }
 }

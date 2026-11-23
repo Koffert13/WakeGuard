@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.wakeguard.alarm.model.AlarmItem
+import com.wakeguard.alarm.model.GameDifficulty
 import com.wakeguard.alarm.model.MathDifficulty
 import com.wakeguard.alarm.model.MemoryGridSize
 import com.wakeguard.alarm.model.MissionConfig
@@ -112,6 +113,9 @@ fun AlarmEditorDialog(
                 is MissionConfig.Snake -> 0
                 is MissionConfig.Math -> 1
                 is MissionConfig.Memory -> 2
+                is MissionConfig.ColorMatch -> 3
+                is MissionConfig.NumberOrder -> 4
+                is MissionConfig.Sequence -> 5
             }
         )
     }
@@ -130,12 +134,30 @@ fun AlarmEditorDialog(
             (initialAlarm.mission as? MissionConfig.Memory) ?: MissionConfig.Memory()
         )
     }
+    var colorMatchConfig by remember {
+        mutableStateOf(
+            (initialAlarm.mission as? MissionConfig.ColorMatch) ?: MissionConfig.ColorMatch()
+        )
+    }
+    var numberOrderConfig by remember {
+        mutableStateOf(
+            (initialAlarm.mission as? MissionConfig.NumberOrder) ?: MissionConfig.NumberOrder()
+        )
+    }
+    var sequenceConfig by remember {
+        mutableStateOf(
+            (initialAlarm.mission as? MissionConfig.Sequence) ?: MissionConfig.Sequence()
+        )
+    }
     var practicingMission by remember { mutableStateOf<MissionConfig?>(null) }
 
     val activeMission: MissionConfig = when (selectedTab) {
         0 -> snakeConfig
         1 -> mathConfig
-        else -> memoryConfig
+        2 -> memoryConfig
+        3 -> colorMatchConfig
+        4 -> numberOrderConfig
+        else -> sequenceConfig
     }
 
     val ringtoneLauncher = rememberLauncherForActivityResult(
@@ -288,21 +310,39 @@ fun AlarmEditorDialog(
 
                     // Mission Picker Card
                     SectionCard(title = "Wake-Up Mini-Game (Alarm Mutes While Playing)") {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            listOf("Snake", "Math", "Memory").forEachIndexed { idx, name ->
-                                FilterChip(
-                                    selected = selectedTab == idx,
-                                    onClick = { selectedTab = idx },
-                                    label = { Text(name, fontWeight = FontWeight.SemiBold) },
-                                    modifier = Modifier.weight(1f),
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = WakeEmeraldDim,
-                                        selectedLabelColor = WakeEmerald
+                        val gameTabs = listOf(
+                            0 to "Snake",
+                            1 to "Math",
+                            2 to "Memory",
+                            3 to "Color Trap",
+                            4 to "Tap 1→N",
+                            5 to "Echo"
+                        )
+                        gameTabs.chunked(3).forEachIndexed { rowIdx, rowTabs ->
+                            if (rowIdx > 0) Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowTabs.forEach { (idx, name) ->
+                                    FilterChip(
+                                        selected = selectedTab == idx,
+                                        onClick = { selectedTab = idx },
+                                        label = {
+                                            Text(
+                                                text = name,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                maxLines = 1
+                                            )
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = WakeEmeraldDim,
+                                            selectedLabelColor = WakeEmerald
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
 
@@ -310,6 +350,13 @@ fun AlarmEditorDialog(
 
                         when (selectedTab) {
                             0 -> {
+                                DifficultyChipRow(
+                                    selected = snakeConfig.difficulty,
+                                    onSelect = { diff ->
+                                        snakeConfig = MissionConfig.Snake.forDifficulty(diff)
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
                                 Text(
                                     text = "Target Snake Length: ${snakeConfig.targetLength} (eat ${snakeConfig.targetLength - 3} apples)",
                                     color = WakeTextPrimary,
@@ -320,8 +367,8 @@ fun AlarmEditorDialog(
                                     onValueChange = {
                                         snakeConfig = snakeConfig.copy(targetLength = it.roundToInt())
                                     },
-                                    valueRange = 6f..25f,
-                                    steps = 18
+                                    valueRange = 5f..20f,
+                                    steps = 14
                                 )
 
                                 Text(
@@ -354,20 +401,6 @@ fun AlarmEditorDialog(
 
                             1 -> {
                                 Text(
-                                    text = "Problems to Solve: ${mathConfig.problemCount}",
-                                    color = WakeTextPrimary,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Slider(
-                                    value = mathConfig.problemCount.toFloat(),
-                                    onValueChange = {
-                                        mathConfig = mathConfig.copy(problemCount = it.roundToInt())
-                                    },
-                                    valueRange = 1f..10f,
-                                    steps = 8
-                                )
-
-                                Text(
                                     text = "Difficulty",
                                     color = WakeTextSecondary,
                                     fontSize = 13.sp
@@ -390,9 +423,39 @@ fun AlarmEditorDialog(
                                     color = WakeTextSecondary,
                                     fontSize = 12.sp
                                 )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = "Problems to Solve: ${mathConfig.problemCount}",
+                                    color = WakeTextPrimary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Slider(
+                                    value = mathConfig.problemCount.toFloat(),
+                                    onValueChange = {
+                                        mathConfig = mathConfig.copy(problemCount = it.roundToInt())
+                                    },
+                                    valueRange = 1f..10f,
+                                    steps = 8
+                                )
                             }
 
-                            else -> {
+                            2 -> {
+                                DifficultyChipRow(
+                                    selected = memoryConfig.difficulty,
+                                    onSelect = { diff ->
+                                        memoryConfig = MissionConfig.Memory.forDifficulty(diff)
+                                    }
+                                )
+                                Text(
+                                    text = when (memoryConfig.difficulty) {
+                                        GameDifficulty.EASY -> "3×3 grid • 2.1s preview"
+                                        GameDifficulty.MEDIUM -> "4×4 grid • 1.6s preview"
+                                        GameDifficulty.HARD -> "4×4 grid • 1.1s preview • more tiles"
+                                    },
+                                    color = WakeTextSecondary,
+                                    fontSize = 12.sp
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
                                 Text(
                                     text = "Rounds to Clear: ${memoryConfig.rounds}",
                                     color = WakeTextPrimary,
@@ -424,6 +487,102 @@ fun AlarmEditorDialog(
                                         )
                                     }
                                 }
+                            }
+
+                            3 -> {
+                                DifficultyChipRow(
+                                    selected = colorMatchConfig.difficulty,
+                                    onSelect = { diff ->
+                                        colorMatchConfig = colorMatchConfig.copy(difficulty = diff)
+                                    }
+                                )
+                                Text(
+                                    text = when (colorMatchConfig.difficulty) {
+                                        GameDifficulty.EASY -> "4 colors • Match ink color • 9s timer"
+                                        GameDifficulty.MEDIUM -> "5 colors • Match ink color • 5.5s timer"
+                                        GameDifficulty.HARD -> "6 colors • Switches between Ink & Word • 3.8s timer"
+                                    },
+                                    color = WakeTextSecondary,
+                                    fontSize = 12.sp
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = "Rounds to Clear: ${colorMatchConfig.rounds}",
+                                    color = WakeTextPrimary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Slider(
+                                    value = colorMatchConfig.rounds.toFloat(),
+                                    onValueChange = {
+                                        colorMatchConfig = colorMatchConfig.copy(rounds = it.roundToInt())
+                                    },
+                                    valueRange = 4f..15f,
+                                    steps = 10
+                                )
+                            }
+
+                            4 -> {
+                                DifficultyChipRow(
+                                    selected = numberOrderConfig.difficulty,
+                                    onSelect = { diff ->
+                                        numberOrderConfig = numberOrderConfig.copy(difficulty = diff)
+                                    }
+                                )
+                                Text(
+                                    text = when (numberOrderConfig.difficulty) {
+                                        GameDifficulty.EASY -> "3×3 grid (1 to 9) • 3 tries"
+                                        GameDifficulty.MEDIUM -> "3×4 grid (1 to 12) • 2 tries"
+                                        GameDifficulty.HARD -> "4×4 grid (1 to 16) • Alternates reverse order"
+                                    },
+                                    color = WakeTextSecondary,
+                                    fontSize = 12.sp
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = "Rounds to Clear: ${numberOrderConfig.rounds}",
+                                    color = WakeTextPrimary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Slider(
+                                    value = numberOrderConfig.rounds.toFloat(),
+                                    onValueChange = {
+                                        numberOrderConfig = numberOrderConfig.copy(rounds = it.roundToInt())
+                                    },
+                                    valueRange = 1f..4f,
+                                    steps = 2
+                                )
+                            }
+
+                            else -> {
+                                DifficultyChipRow(
+                                    selected = sequenceConfig.difficulty,
+                                    onSelect = { diff ->
+                                        sequenceConfig = sequenceConfig.copy(difficulty = diff)
+                                    }
+                                )
+                                Text(
+                                    text = when (sequenceConfig.difficulty) {
+                                        GameDifficulty.EASY -> "4 pads • Slow playback • Starts at 3 steps"
+                                        GameDifficulty.MEDIUM -> "4 pads • Normal playback • Starts at 4 steps"
+                                        GameDifficulty.HARD -> "6 pads • Fast playback • Starts at 4 steps"
+                                    },
+                                    color = WakeTextSecondary,
+                                    fontSize = 12.sp
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = "Rounds to Clear: ${sequenceConfig.rounds}",
+                                    color = WakeTextPrimary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Slider(
+                                    value = sequenceConfig.rounds.toFloat(),
+                                    onValueChange = {
+                                        sequenceConfig = sequenceConfig.copy(rounds = it.roundToInt())
+                                    },
+                                    valueRange = 2f..6f,
+                                    steps = 3
+                                )
                             }
                         }
 
@@ -543,6 +702,31 @@ fun AlarmEditorDialog(
             mission = practice,
             onDismiss = { practicingMission = null }
         )
+    }
+}
+
+@Composable
+private fun DifficultyChipRow(
+    selected: GameDifficulty,
+    onSelect: (GameDifficulty) -> Unit
+) {
+    Text(
+        text = "Difficulty",
+        color = WakeTextSecondary,
+        fontSize = 13.sp
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        GameDifficulty.entries.forEach { diff ->
+            FilterChip(
+                selected = selected == diff,
+                onClick = { onSelect(diff) },
+                label = { Text(diff.label) },
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 

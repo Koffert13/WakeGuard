@@ -1,5 +1,6 @@
 package com.wakeguard.alarm.games.memory
 
+import com.wakeguard.alarm.model.GameDifficulty
 import com.wakeguard.alarm.model.MissionConfig
 import kotlin.random.Random
 
@@ -14,6 +15,7 @@ data class MemoryGameState(
     val dimension: Int,
     val totalRounds: Int,
     val currentRound: Int, // 1-indexed
+    val difficulty: GameDifficulty = GameDifficulty.EASY,
     val targetTiles: Set<Int>,
     val foundTiles: Set<Int> = emptySet(),
     val wrongTile: Int? = null,
@@ -22,6 +24,12 @@ data class MemoryGameState(
     val totalCells: Int get() = dimension * dimension
     val progress: Float
         get() = ((currentRound - 1).toFloat() / totalRounds.coerceAtLeast(1)).coerceIn(0f, 1f)
+    val previewDurationMs: Long
+        get() = when (difficulty) {
+            GameDifficulty.EASY -> 2_100L
+            GameDifficulty.MEDIUM -> 1_600L
+            GameDifficulty.HARD -> 1_100L
+        }
 }
 
 class MemoryEngine(private val random: Random = Random.Default) {
@@ -33,7 +41,8 @@ class MemoryEngine(private val random: Random = Random.Default) {
             dimension = dim,
             totalRounds = rounds,
             currentRound = 1,
-            targetTiles = generatePattern(dim, round = 1),
+            difficulty = config.difficulty,
+            targetTiles = generatePattern(dim, round = 1, difficulty = config.difficulty),
             phase = MemoryPhase.SHOWING_PATTERN
         )
     }
@@ -57,7 +66,7 @@ class MemoryEngine(private val random: Random = Random.Default) {
                     val nextRound = state.currentRound + 1
                     state.copy(
                         currentRound = nextRound,
-                        targetTiles = generatePattern(state.dimension, nextRound),
+                        targetTiles = generatePattern(state.dimension, nextRound, state.difficulty),
                         foundTiles = emptySet(),
                         wrongTile = null,
                         phase = MemoryPhase.SHOWING_PATTERN
@@ -73,16 +82,20 @@ class MemoryEngine(private val random: Random = Random.Default) {
 
     fun retryCurrentRound(state: MemoryGameState): MemoryGameState {
         return state.copy(
-            targetTiles = generatePattern(state.dimension, state.currentRound),
+            targetTiles = generatePattern(state.dimension, state.currentRound, state.difficulty),
             foundTiles = emptySet(),
             wrongTile = null,
             phase = MemoryPhase.SHOWING_PATTERN
         )
     }
 
-    private fun generatePattern(dimension: Int, round: Int): Set<Int> {
+    private fun generatePattern(dimension: Int, round: Int, difficulty: GameDifficulty): Set<Int> {
         val total = dimension * dimension
-        val baseCount = if (dimension == 3) 3 else 4
+        val baseCount = when (difficulty) {
+            GameDifficulty.EASY -> if (dimension == 3) 3 else 4
+            GameDifficulty.MEDIUM -> if (dimension == 3) 4 else 5
+            GameDifficulty.HARD -> if (dimension == 3) 4 else 6
+        }
         val count = (baseCount + (round - 1)).coerceAtMost(total - 2)
         return (0 until total).shuffled(random).take(count).toSet()
     }

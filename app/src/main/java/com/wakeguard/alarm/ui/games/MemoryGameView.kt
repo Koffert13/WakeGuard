@@ -69,7 +69,7 @@ fun MemoryGameView(
     LaunchedEffect(state.currentRound, state.phase, paused) {
         if (!paused && state.phase == MemoryPhase.SHOWING_PATTERN) {
             onInteraction()
-            delay(1_800L)
+            delay(state.previewDurationMs)
             state = engine.finishShowingPattern(state)
         }
     }
