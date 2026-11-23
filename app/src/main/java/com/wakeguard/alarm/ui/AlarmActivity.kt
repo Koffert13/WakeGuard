@@ -12,8 +12,10 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
@@ -41,6 +44,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -146,6 +150,18 @@ class AlarmActivity : ComponentActivity() {
                         onFinishClose = {
                             AlarmRingingState.stateMachine.clearSession()
                             finishAndRemoveTask()
+                        },
+                        onStopTest = if (current.isQuickTest) {
+                            {
+                                AlarmRingingState.stateMachine.clearSession()
+                                val stopIntent = Intent(this, AlarmRingingService::class.java).apply {
+                                    action = AlarmRingingService.ACTION_STOP_TEST
+                                }
+                                startService(stopIntent)
+                                finishAndRemoveTask()
+                            }
+                        } else {
+                            null
                         }
                     )
                 }
@@ -233,7 +249,8 @@ private fun AlarmRingingScreen(
     onInteraction: () -> Unit,
     onCrash: (String) -> Unit,
     onMissionComplete: () -> Unit,
-    onFinishClose: () -> Unit
+    onFinishClose: () -> Unit,
+    onStopTest: (() -> Unit)?
 ) {
     var resetSignal by remember { mutableIntStateOf(0) }
     var currentTimeText by remember { mutableStateOf(formatNowTime()) }
@@ -265,7 +282,8 @@ private fun AlarmRingingScreen(
                         onStartGame = {
                             resetSignal++
                             onStartGame()
-                        }
+                        },
+                        onStopTest = onStopTest
                     )
                 }
 
@@ -279,7 +297,10 @@ private fun AlarmRingingScreen(
                             .padding(top = 10.dp)
                     ) {
                         // Top Audio & Guard Status Strip
-                        MissionStatusHeader(session = session)
+                        MissionStatusHeader(
+                            session = session,
+                            onStopTest = onStopTest
+                        )
                         Spacer(modifier = Modifier.height(10.dp))
 
                         // Active Mini-Game
@@ -310,7 +331,8 @@ private fun AlarmRingingScreen(
                                     resetSignal++
                                 }
                                 onStartGame()
-                            }
+                            },
+                            onStopTest = onStopTest
                         )
                     }
                 }
@@ -330,7 +352,8 @@ private fun AlarmRingingScreen(
 private fun WakeIntroScreen(
     session: RingingSession,
     currentTimeText: String,
-    onStartGame: () -> Unit
+    onStartGame: () -> Unit,
+    onStopTest: (() -> Unit)?
 ) {
     Column(
         modifier = Modifier
@@ -356,7 +379,11 @@ private fun WakeIntroScreen(
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = if (session.alarm.strictExitGuard) "EXIT LOCKED • ALARM RINGING" else "ALARM RINGING",
+                text = when {
+                    session.isQuickTest -> "TEST MODE • ALARM RINGING"
+                    session.alarm.strictExitGuard -> "EXIT LOCKED • ALARM RINGING"
+                    else -> "ALARM RINGING"
+                },
                 color = WakeCoral,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
@@ -445,12 +472,41 @@ private fun WakeIntroScreen(
                     fontWeight = FontWeight.ExtraBold
                 )
             }
+            if (onStopTest != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onStopTest,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, WakeCoral.copy(alpha = 0.65f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = WakeCoral
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "STOP TEST",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun MissionStatusHeader(session: RingingSession) {
+private fun MissionStatusHeader(
+    session: RingingSession,
+    onStopTest: (() -> Unit)?
+) {
     val isMuted = session.phase == RingingPhase.PLAYING_MUTED
     val idleSecondsLeft = ((session.idleRemainingMs + 999L) / 1000L).toInt()
     val showIdleWarning = isMuted && idleSecondsLeft <= 7
@@ -484,35 +540,66 @@ private fun MissionStatusHeader(session: RingingSession) {
             )
         }
 
-        if (showIdleWarning) {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(WakeAmber.copy(alpha = 0.2f))
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Move! Ringing in ${idleSecondsLeft}s",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = WakeAmber
-                )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (showIdleWarning) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(WakeAmber.copy(alpha = 0.2f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Move! ${idleSecondsLeft}s",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = WakeAmber
+                    )
+                }
+            } else if (onStopTest == null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Rounded.Lock,
+                        contentDescription = null,
+                        tint = WakeTextSecondary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Exit Guard Active",
+                        fontSize = 12.sp,
+                        color = WakeTextSecondary
+                    )
+                }
             }
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Rounded.Lock,
-                    contentDescription = null,
-                    tint = WakeTextSecondary,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "Exit Guard Active",
-                    fontSize = 12.sp,
-                    color = WakeTextSecondary
-                )
+
+            if (onStopTest != null) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(WakeCoralDim)
+                        .border(1.dp, WakeCoral.copy(alpha = 0.6f), RoundedCornerShape(50))
+                        .clickable(onClick = onStopTest)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = "Stop Test",
+                        tint = WakeCoral,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Stop Test",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = WakeCoral
+                    )
+                }
             }
         }
     }
@@ -522,7 +609,8 @@ private fun MissionStatusHeader(session: RingingSession) {
 private fun ResumeAlarmOverlay(
     isCrash: Boolean,
     message: String,
-    onRetryOrContinue: () -> Unit
+    onRetryOrContinue: () -> Unit,
+    onStopTest: (() -> Unit)?
 ) {
     Box(
         modifier = Modifier
@@ -583,6 +671,32 @@ private fun ResumeAlarmOverlay(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
+            }
+            if (onStopTest != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onStopTest,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, WakeCoral.copy(alpha = 0.65f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = WakeCoral
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "STOP TEST",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }

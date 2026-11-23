@@ -61,6 +61,10 @@ class AlarmRingingService : Service() {
             ACTION_MISSION_COMPLETED -> {
                 handleMissionCompleted()
             }
+
+            ACTION_STOP_TEST -> {
+                handleStopTest()
+            }
         }
         return START_REDELIVER_INTENT
     }
@@ -253,6 +257,22 @@ class AlarmRingingService : Service() {
         stopSelf()
     }
 
+    private fun handleStopTest() {
+        val session = AlarmRingingState.session.value
+        if (session != null && !session.isQuickTest) return
+
+        val app = application as WakeGuardApp
+        watchdogJob?.cancel()
+        stateObserverJob?.cancel()
+        audioController.stop()
+        detachOverlayAnchor()
+        app.repository.setActiveRingingAlarm(null)
+        AlarmRingingState.stateMachine.clearSession()
+        releaseWakeLock()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+    }
+
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         val session = AlarmRingingState.session.value
@@ -297,6 +317,7 @@ class AlarmRingingService : Service() {
         const val ACTION_START_ALARM = "com.wakeguard.alarm.service.START_ALARM"
         const val ACTION_RELAUNCH_ALARM = "com.wakeguard.alarm.service.RELAUNCH_ALARM"
         const val ACTION_MISSION_COMPLETED = "com.wakeguard.alarm.service.MISSION_COMPLETED"
+        const val ACTION_STOP_TEST = "com.wakeguard.alarm.service.STOP_TEST"
         const val EXTRA_ALARM_ID = "extra_alarm_id"
         const val EXTRA_IS_QUICK_TEST = "extra_is_quick_test"
         private const val NOTIFICATION_ID = 44_001
