@@ -82,6 +82,7 @@ class AlarmRingingService : Service() {
 
         acquireWakeLock()
         attachOverlayAnchor()
+        AlarmRingingState.resetWindowTracking()
         AlarmRingingState.stateMachine.startSession(alarm, isQuickTest)
 
         val notification = buildAlarmNotification(alarm)
@@ -102,9 +103,10 @@ class AlarmRingingService : Service() {
     }
 
     /**
-     * Attaches a 1x1 transparent non-touchable overlay window while the alarm is ringing.
+     * Attaches a 1x1 transparent non-touchable overlay window ONLY while the alarm is ringing.
      * On Pixel 9 (Android 15), having an active visible overlay window guarantees instant
-     * Background Activity Launch (BAL) relaunch whenever the user tries to swipe Home/Recents.
+     * Background Activity Launch (BAL) relaunch whenever the user tries to swipe Home/Recents,
+     * without requiring an Accessibility Service (keeping banking apps like BankID happy).
      */
     private fun attachOverlayAnchor() {
         if (overlayAnchorView != null) return
@@ -158,12 +160,18 @@ class AlarmRingingService : Service() {
     private fun startWatchdogLoop() {
         watchdogJob?.cancel()
         watchdogJob = serviceScope.launch {
+            val pm = getSystemService(PowerManager::class.java)
             // Brief grace period right after launch so Activity has time to come to foreground
             val graceUntilMs = System.currentTimeMillis() + 1_200L
+            var hasReachedForeground = false
             while (isActive) {
                 delay(150L)
                 val session = AlarmRingingState.session.value ?: break
                 if (!session.isActive) break
+
+                if (AlarmRingingState.isActivityForeground) {
+                    hasReachedForeground = true
+                }
 
                 // 1. Tick idle timeout when muted in game -> resumes alarm at 0s
                 AlarmRingingState.stateMachine.tickIdleTimer()
@@ -173,13 +181,34 @@ class AlarmRingingService : Service() {
 
                 // 3. Anti-exit watchdog: if user backgrounded AlarmActivity, unmute & yank right back!
                 val now = System.currentTimeMillis()
-                if (now > graceUntilMs && !AlarmRingingState.isActivityForeground) {
+                val pastStartupGrace = hasReachedForeground || now > graceUntilMs
+                if (pastStartupGrace && !AlarmRingingState.isActivityForeground) {
                     if (session.phase == RingingPhase.PLAYING_MUTED) {
                         AlarmRingingState.stateMachine.reportEscapeAttempt()
                     }
                     if (now - lastRelaunchAtMs >= 250L) {
                         lastRelaunchAtMs = now
                         launchAlarmActivity(force = true)
+                    }
+                } else if (
+                    hasReachedForeground &&
+                    session.alarm.strictExitGuard &&
+                    AlarmRingingState.isActivityForeground &&
+                    !AlarmRingingState.isActivityWindowFocused &&
+                    pm?.isInteractive == true
+                ) {
+                    // System overlay (Notification Shade / Power Menu) is holding focus over the alarm
+                    val focusLostAt = AlarmRingingState.lastWindowFocusLostAtMs
+                    if (focusLostAt > 0L && now - focusLostAt >= 450L) {
+                        if (session.phase == RingingPhase.PLAYING_MUTED) {
+                            AlarmRingingState.stateMachine.reportEscapeAttempt(
+                                message = "Close overlays and complete the mission to stop the alarm."
+                            )
+                        }
+                        if (now - lastRelaunchAtMs >= 600L) {
+                            lastRelaunchAtMs = now
+                            launchAlarmActivity(force = true)
+                        }
                     }
                 }
             }
@@ -237,6 +266,7 @@ class AlarmRingingService : Service() {
         stateObserverJob?.cancel()
         audioController.stop()
         detachOverlayAnchor()
+        AlarmRingingState.resetWindowTracking()
         app.repository.setActiveRingingAlarm(null)
 
         // Reschedule repeating alarm for next occurrence, or turn off one-shot alarm
@@ -266,6 +296,7 @@ class AlarmRingingService : Service() {
         stateObserverJob?.cancel()
         audioController.stop()
         detachOverlayAnchor()
+        AlarmRingingState.resetWindowTracking()
         app.repository.setActiveRingingAlarm(null)
         AlarmRingingState.stateMachine.clearSession()
         releaseWakeLock()
@@ -308,6 +339,7 @@ class AlarmRingingService : Service() {
         stateObserverJob?.cancel()
         audioController.stop()
         detachOverlayAnchor()
+        AlarmRingingState.resetWindowTracking()
         releaseWakeLock()
         serviceScope.cancel()
         super.onDestroy()

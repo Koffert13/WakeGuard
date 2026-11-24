@@ -97,7 +97,9 @@ class AlarmSessionStateMachine(
         }
     }
 
-    fun reportEscapeAttempt() {
+    fun reportEscapeAttempt(
+        message: String = "Nice try! Complete the mission to stop the alarm."
+    ) {
         _session.update { current ->
             if (current == null || current.phase == RingingPhase.COMPLETED) return@update current
             val nextPhase = if (current.phase == RingingPhase.PLAYING_MUTED) {
@@ -107,7 +109,7 @@ class AlarmSessionStateMachine(
             }
             current.copy(
                 phase = nextPhase,
-                crashMessage = "Nice try! Complete the mission to stop the alarm.",
+                crashMessage = message,
                 escapeAttempts = current.escapeAttempts + 1
             )
         }
@@ -158,6 +160,18 @@ object AlarmRingingState {
 
     @Volatile
     var isActivityForeground: Boolean = false
+
+    @Volatile
+    var isActivityWindowFocused: Boolean = false
+
+    @Volatile
+    var lastWindowFocusLostAtMs: Long = 0L
+
+    fun resetWindowTracking() {
+        isActivityForeground = false
+        isActivityWindowFocused = false
+        lastWindowFocusLostAtMs = 0L
+    }
 
     val isRingingActive: Boolean
         get() = session.value?.isActive == true

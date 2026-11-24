@@ -19,31 +19,32 @@ Ad-free, open, strict wake-up alarm app built natively for **Google Pixel 9 (And
 
 ## Installing on Your Pixel 9
 
-Google Play Protect on Pixel 9 (Android 15) automatically blocks browser/Files sideloading of any APK that declares an Accessibility Service. Because of this, WakeGuard ships in two builds:
+Google Play Protect on Pixel 9 (Android 15) blocks browser/Files sideloading of APKs that declare an Accessibility Service, and **Swedish BankID (and similar banking apps)** refuses to open while any sideloaded Accessibility Service or Wireless/USB Debugging is enabled. Because of this, WakeGuard ships in two builds:
 
-### Option A: Direct Download on Your Pixel 9 — Recommended (`standard` flavor)
-1. Download [`apk/WakeGuard-v1.0.1-sideload.apk`](apk/WakeGuard-v1.0.1-sideload.apk) directly on your Pixel 9.
-2. Open it in the **Files** app and install normally (no Accessibility Service declared, so Play Protect allows it cleanly).
-3. Uses **Display Over Other Apps (`SYSTEM_ALERT_WINDOW`) + 150ms Foreground Watchdog + `onUserLeaveHint` instant snap-back + Back/Volume lock + Lock-screen wake + Reboot survival** to keep you in the game until you win!
+### Option A: Direct Download on Your Pixel 9 — Recommended & BankID-Safe (`standard` flavor)
+1. Download [`apk/WakeGuard-v1.0.2-sideload.apk`](apk/WakeGuard-v1.0.2-sideload.apk) directly on your Pixel 9.
+2. Open it in the **Files** app and install normally (no Accessibility Service declared, so both Play Protect and BankID work cleanly).
+3. Uses **Display Over Other Apps (`SYSTEM_ALERT_WINDOW`, attached only while ringing) + 150ms Foreground Watchdog + `onUserLeaveHint` & window-focus-loss instant unmute/snap-back + Back/Volume lock + Lock-screen wake + Reboot survival** to keep you in the game until you win!
+4. Make sure **Wireless Debugging / USB Debugging** is turned off in Developer Options if you previously enabled it—BankID also checks for active debugging.
 
-### Option B: USB `adb install` with Accessibility Guard (`strict` flavor)
-If you also want the extra Accessibility Service (which dismisses the Power Menu & Notification Shade while ringing), install over USB (ADB installs bypass the internet-sideload filter):
+### Option B: USB `adb install` with Optional Accessibility Guard (`strict` flavor)
+If you do **not** use BankID or banking apps that block Accessibility Services and want the extra Accessibility Service (which dismisses the Power Menu & Notification Shade while ringing), install over USB:
 ```bash
-adb install -r apk/WakeGuard-v1.0.1-strict-adb.apk
+adb install -r apk/WakeGuard-v1.0.2-strict-adb.apk
 ```
 
 ## First-Time Pixel 9 Permission Setup
-Open **WakeGuard** and complete the **Setup Pixel 9 Anti-Exit Guard** checklist at the top of the home screen:
+Open **WakeGuard** and complete the **Finish exit guard setup** checklist at the top of the home screen:
 1. **Notifications**
-2. **Exact Alarms**
-3. **Full-Screen Wake**
-4. **Display Over Other Apps**
-5. **Unrestricted Battery**
-6. *(Strict ADB build only)* **Strict Accessibility Guard** — if Android shows *"Restricted setting"*, tap **Open App Info** → top-right **⋮** menu → **Allow restricted settings**, then enable **WakeGuard Anti-Exit Guard**.
+2. **Exact alarms**
+3. **Full-screen wake**
+4. **Display over other apps** *(overlay anchor is only attached while an alarm is actively ringing)*
+5. **Unrestricted battery**
+6. *(Strict ADB build only, optional — leave off if you use BankID)* **Accessibility guard**
 
 ## Building & Testing
 ```bash
-./gradlew testDebugUnitTest assembleDebug
+./gradlew testStandardDebugUnitTest assembleStandardRelease assembleStrictRelease
 ```
 The installable APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
 

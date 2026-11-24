@@ -138,7 +138,7 @@ fun ProtectionChecklistCard(
                 )
                 PermissionRow(
                     title = "Display over other apps",
-                    subtitle = "Returns to the mission if you swipe home",
+                    subtitle = "Only active while ringing · returns to mission if you leave",
                     granted = status.overlayGranted,
                     onGrant = onOpenOverlay
                 )
@@ -150,8 +150,8 @@ fun ProtectionChecklistCard(
                 )
                 if (status.hasAccessibilityGuard) {
                     PermissionRow(
-                        title = "Accessibility guard",
-                        subtitle = "Blocks Home, Recents, and Power menu while ringing",
+                        title = "Accessibility guard (optional)",
+                        subtitle = "Dismisses Power menu & shade while ringing — may block BankID",
                         granted = status.accessibilityGuardEnabled,
                         onGrant = onOpenAccessibility
                     )
@@ -166,7 +166,7 @@ fun ProtectionChecklistCard(
                                 .padding(12.dp)
                         ) {
                             Text(
-                                text = "If Android shows \"Restricted setting\", open App Info, tap the top-right menu, choose \"Allow restricted settings\", then enable WakeGuard in Accessibility.",
+                                text = "Leave this off if you use BankID or banking apps that block Accessibility Services. WakeGuard's standard exit guard already protects alarms without it.",
                                 fontSize = 12.sp,
                                 color = WakeTextSecondary,
                                 lineHeight = 18.sp

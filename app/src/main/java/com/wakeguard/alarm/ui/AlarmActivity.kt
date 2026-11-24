@@ -3,6 +3,7 @@ package com.wakeguard.alarm.ui
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.view.KeyEvent
 import android.view.WindowManager
 import android.widget.Toast
@@ -93,6 +94,8 @@ import java.util.Locale
 class AlarmActivity : ComponentActivity() {
 
     private var lastBackToastMs: Long = 0L
+    private var hasGainedWindowFocus: Boolean = false
+    private var lastEscapeReportAtMs: Long = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -196,10 +199,33 @@ class AlarmActivity : ComponentActivity() {
         controller.hide(WindowInsetsCompat.Type.systemBars())
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        hideSystemBars()
+    }
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
+        AlarmRingingState.isActivityWindowFocused = hasFocus
         if (hasFocus) {
+            hasGainedWindowFocus = true
             hideSystemBars()
+            return
+        }
+
+        // Focus lost while still active (e.g., Notification Shade, Quick Settings, Power Menu, or Assistant)
+        AlarmRingingState.lastWindowFocusLostAtMs = System.currentTimeMillis()
+        if (hasGainedWindowFocus && AlarmRingingState.isRingingActive && !isFinishing) {
+            val pm = getSystemService(PowerManager::class.java)
+            if (pm?.isInteractive == true) {
+                reportEscapeDebounced(
+                    message = "Close overlays and complete the mission to stop the alarm."
+                )
+                hideSystemBars()
+                if (AlarmRingingState.isStrictGuardActive) {
+                    requestServiceRelaunch()
+                }
+            }
         }
     }
 
@@ -212,21 +238,43 @@ class AlarmActivity : ComponentActivity() {
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         if (AlarmRingingState.isRingingActive) {
-            AlarmRingingState.stateMachine.reportEscapeAttempt()
-            val relaunch = Intent(this, AlarmRingingService::class.java).apply {
-                action = AlarmRingingService.ACTION_RELAUNCH_ALARM
-            }
-            runCatching { startService(relaunch) }
+            reportEscapeDebounced()
+            requestServiceRelaunch()
         }
     }
 
     override fun onPause() {
         super.onPause()
         AlarmRingingState.isActivityForeground = false
+        AlarmRingingState.isActivityWindowFocused = false
         // If user navigated away while playing muted, immediately unmute so escaping never silences the alarm
         if (AlarmRingingState.isRingingActive) {
-            AlarmRingingState.stateMachine.reportEscapeAttempt()
+            reportEscapeDebounced()
         }
+    }
+
+    override fun onDestroy() {
+        AlarmRingingState.isActivityForeground = false
+        AlarmRingingState.isActivityWindowFocused = false
+        super.onDestroy()
+    }
+
+    private fun reportEscapeDebounced(
+        message: String = "Nice try! Complete the mission to stop the alarm."
+    ) {
+        val now = System.currentTimeMillis()
+        val isMuted = AlarmRingingState.session.value?.phase == RingingPhase.PLAYING_MUTED
+        if (isMuted || now - lastEscapeReportAtMs >= 400L) {
+            lastEscapeReportAtMs = now
+            AlarmRingingState.stateMachine.reportEscapeAttempt(message)
+        }
+    }
+
+    private fun requestServiceRelaunch() {
+        val relaunch = Intent(this, AlarmRingingService::class.java).apply {
+            action = AlarmRingingService.ACTION_RELAUNCH_ALARM
+        }
+        runCatching { startService(relaunch) }
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {

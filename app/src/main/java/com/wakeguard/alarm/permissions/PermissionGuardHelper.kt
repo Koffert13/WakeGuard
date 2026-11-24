@@ -31,22 +31,18 @@ data class GuardPermissionsStatus(
             exactAlarmGranted &&
             fullScreenIntentGranted &&
             overlayGranted &&
-            batteryUnrestricted &&
-            (!hasAccessibilityGuard || accessibilityGuardEnabled)
+            batteryUnrestricted
 
     val grantedCount: Int
-        get() {
-            val base = listOf(
-                notificationsGranted,
-                exactAlarmGranted,
-                fullScreenIntentGranted,
-                overlayGranted,
-                batteryUnrestricted
-            ).count { it }
-            return if (hasAccessibilityGuard && accessibilityGuardEnabled) base + 1 else base
-        }
+        get() = listOf(
+            notificationsGranted,
+            exactAlarmGranted,
+            fullScreenIntentGranted,
+            overlayGranted,
+            batteryUnrestricted
+        ).count { it }
 
-    val totalCount: Int get() = if (hasAccessibilityGuard) 6 else 5
+    val totalCount: Int get() = 5
 }
 
 object PermissionGuardHelper {

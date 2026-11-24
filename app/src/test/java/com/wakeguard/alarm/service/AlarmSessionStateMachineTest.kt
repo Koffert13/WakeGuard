@@ -60,4 +60,51 @@ class AlarmSessionStateMachineTest {
         assertFalse(sm.session.value!!.shouldPlaySound)
         assertFalse(sm.session.value!!.isActive)
     }
+
+    @Test
+    fun `focus loss escape unmutes playing session with custom overlay message`() {
+        val sm = AlarmSessionStateMachine(clock = { 5_000L })
+        sm.startSession(AlarmItem(), isQuickTest = false)
+        sm.startOrResumePlaying()
+        assertFalse(sm.session.value!!.shouldPlaySound)
+
+        val msg = "Close overlays and complete the mission to stop the alarm."
+        sm.reportEscapeAttempt(message = msg)
+
+        val session = sm.session.value!!
+        assertEquals(RingingPhase.IDLE_RINGING, session.phase)
+        assertTrue(session.shouldPlaySound)
+        assertEquals(msg, session.crashMessage)
+        assertEquals(1, session.escapeAttempts)
+    }
+
+    @Test
+    fun `resetWindowTracking clears foreground and focus flags`() {
+        AlarmRingingState.isActivityForeground = true
+        AlarmRingingState.isActivityWindowFocused = true
+        AlarmRingingState.lastWindowFocusLostAtMs = 123_456L
+
+        AlarmRingingState.resetWindowTracking()
+
+        assertFalse(AlarmRingingState.isActivityForeground)
+        assertFalse(AlarmRingingState.isActivityWindowFocused)
+        assertEquals(0L, AlarmRingingState.lastWindowFocusLostAtMs)
+    }
+
+    @Test
+    fun `guard permissions are ready with 5 BankID-safe permissions even without accessibility`() {
+        val status = com.wakeguard.alarm.permissions.GuardPermissionsStatus(
+            notificationsGranted = true,
+            exactAlarmGranted = true,
+            fullScreenIntentGranted = true,
+            overlayGranted = true,
+            batteryUnrestricted = true,
+            accessibilityGuardEnabled = false,
+            hasAccessibilityGuard = true
+        )
+
+        assertTrue(status.allGranted)
+        assertEquals(5, status.grantedCount)
+        assertEquals(5, status.totalCount)
+    }
 }
